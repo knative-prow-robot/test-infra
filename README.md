@@ -8,7 +8,7 @@ collecting metrics and displaying test results.
 Knative uses [Prow](https://github.com/kubernetes/test-infra/tree/master/prow)
 to schedule testing and update issues.
 
-### Gubernator
+### Spyglass and Gubernator
 
 Knative uses
 [gubernator](https://github.com/kubernetes/test-infra/tree/master/gubernator) to
