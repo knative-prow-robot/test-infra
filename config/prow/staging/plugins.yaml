@@ -89,6 +89,7 @@ plugins:
   knative-prow-robot/test-infra:
   - approve
   - assign
+  - config-updater
   - blunderbuss
   - buildifier
   - cat
@@ -111,3 +112,12 @@ plugins:
   - welcome
   - wip
   - yuks
+
+config_updater:
+  maps:
+    config/prow/staging/config.yaml:
+      name: config
+    config/prow/staging/jobs/*.yaml:
+      name: job-config
+    config/prow/staging/plugins.yaml:
+      name: plugins
