@@ -17,7 +17,6 @@
 # ####     USE "make config" TO REGENERATE THIS FILE.     ####
 # ####                                                    ####
 # ############################################################
-# FROM COMMIT: ((COMMIT_HASH_TOKEN))
 presubmits:
   knative/serving:
   - name: pull-knative-serving-build-tests
@@ -278,6 +277,10 @@ presubmits:
           secretName: test-account
   - name: pull-knative-serving-upgrade-tests
     agent: kubernetes
+    labels:
+      prow.k8s.io/pubsub.project: knative-tests
+      prow.k8s.io/pubsub.topic: knative-monitoring
+      prow.k8s.io/pubsub.runID: pull-knative-serving-upgrade-tests
     context: pull-knative-serving-upgrade-tests
     always_run: true
     rerun_command: "/test pull-knative-serving-upgrade-tests"
@@ -311,6 +314,10 @@ presubmits:
           secretName: test-account
   - name: pull-knative-serving-upgrade-tests
     agent: kubernetes
+    labels:
+      prow.k8s.io/pubsub.project: knative-tests
+      prow.k8s.io/pubsub.topic: knative-monitoring
+      prow.k8s.io/pubsub.runID: pull-knative-serving-upgrade-tests
     context: pull-knative-serving-upgrade-tests
     always_run: true
     rerun_command: "/test pull-knative-serving-upgrade-tests"
@@ -342,14 +349,17 @@ presubmits:
       - name: test-account
         secret:
           secretName: test-account
-  - name: pull-knative-serving-smoke-tests
+  - name: pull-knative-serving-autotls-tests
     agent: kubernetes
-    context: pull-knative-serving-smoke-tests
-    always_run: false
-    rerun_command: "/test pull-knative-serving-smoke-tests"
-    trigger: "(?m)^/test (all|pull-knative-serving-smoke-tests),?(\\s+|$)"
+    labels:
+      prow.k8s.io/pubsub.project: knative-tests
+      prow.k8s.io/pubsub.topic: knative-monitoring
+      prow.k8s.io/pubsub.runID: pull-knative-serving-autotls-tests
+    context: pull-knative-serving-autotls-tests
+    always_run: true
+    rerun_command: "/test pull-knative-serving-autotls-tests"
+    trigger: "(?m)^/test (all|pull-knative-serving-autotls-tests),?(\\s+|$)"
     decorate: true
-    optional: true
     path_alias: knative.dev/serving
     branches:
     - "release-0.9"
@@ -362,7 +372,7 @@ presubmits:
         args:
         - "./test/presubmit-tests.sh"
         - "--run-test"
-        - "./test/e2e-smoke-tests.sh"
+        - "./test/e2e-auto-tls-tests.sh"
         volumeMounts:
         - name: test-account
           mountPath: /etc/test-account
@@ -376,14 +386,17 @@ presubmits:
       - name: test-account
         secret:
           secretName: test-account
-  - name: pull-knative-serving-smoke-tests
+  - name: pull-knative-serving-autotls-tests
     agent: kubernetes
-    context: pull-knative-serving-smoke-tests
-    always_run: false
-    rerun_command: "/test pull-knative-serving-smoke-tests"
-    trigger: "(?m)^/test (all|pull-knative-serving-smoke-tests),?(\\s+|$)"
+    labels:
+      prow.k8s.io/pubsub.project: knative-tests
+      prow.k8s.io/pubsub.topic: knative-monitoring
+      prow.k8s.io/pubsub.runID: pull-knative-serving-autotls-tests
+    context: pull-knative-serving-autotls-tests
+    always_run: true
+    rerun_command: "/test pull-knative-serving-autotls-tests"
+    trigger: "(?m)^/test (all|pull-knative-serving-autotls-tests),?(\\s+|$)"
     decorate: true
-    optional: true
     path_alias: knative.dev/serving
     skip_branches:
     - "release-0.9"
@@ -396,7 +409,7 @@ presubmits:
         args:
         - "./test/presubmit-tests.sh"
         - "--run-test"
-        - "./test/e2e-smoke-tests.sh"
+        - "./test/e2e-auto-tls-tests.sh"
         volumeMounts:
         - name: test-account
           mountPath: /etc/test-account
@@ -1337,10 +1350,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-client-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-client-unit-tests
     context: pull-knative-client-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-client-unit-tests"
@@ -1380,10 +1389,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-client-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-client-unit-tests
     context: pull-knative-client-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-client-unit-tests"
@@ -1423,10 +1428,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-client-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-client-integration-tests
     context: pull-knative-client-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-client-integration-tests"
@@ -1466,10 +1467,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-client-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-client-integration-tests
     context: pull-knative-client-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-client-integration-tests"
@@ -1712,10 +1709,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-client-contrib-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-client-contrib-unit-tests
     context: pull-knative-client-contrib-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-client-contrib-unit-tests"
@@ -1754,10 +1747,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-client-contrib-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-client-contrib-unit-tests
     context: pull-knative-client-contrib-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-client-contrib-unit-tests"
@@ -1796,10 +1785,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-client-contrib-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-client-contrib-integration-tests
     context: pull-knative-client-contrib-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-client-contrib-integration-tests"
@@ -1838,10 +1823,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-client-contrib-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-client-contrib-integration-tests
     context: pull-knative-client-contrib-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-client-contrib-integration-tests"
@@ -2029,10 +2010,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-unit-tests
     context: pull-knative-eventing-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-unit-tests"
@@ -2072,10 +2049,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-unit-tests
     context: pull-knative-eventing-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-unit-tests"
@@ -2115,10 +2088,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-integration-tests
     context: pull-knative-eventing-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-integration-tests"
@@ -2158,10 +2127,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-integration-tests
     context: pull-knative-eventing-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-integration-tests"
@@ -2352,10 +2317,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-contrib-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-contrib-unit-tests
     context: pull-knative-eventing-contrib-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-contrib-unit-tests"
@@ -2395,10 +2356,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-contrib-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-contrib-unit-tests
     context: pull-knative-eventing-contrib-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-contrib-unit-tests"
@@ -2438,10 +2395,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-contrib-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-contrib-integration-tests
     context: pull-knative-eventing-contrib-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-contrib-integration-tests"
@@ -2481,10 +2434,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-contrib-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-contrib-integration-tests
     context: pull-knative-eventing-contrib-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-contrib-integration-tests"
@@ -2663,10 +2612,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-docs-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-docs-unit-tests
     context: pull-knative-docs-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-docs-unit-tests"
@@ -2705,10 +2650,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-docs-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-docs-unit-tests
     context: pull-knative-docs-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-docs-unit-tests"
@@ -2747,10 +2688,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-docs-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-docs-integration-tests
     context: pull-knative-docs-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-docs-integration-tests"
@@ -2797,10 +2734,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-docs-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-docs-integration-tests
     context: pull-knative-docs-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-docs-integration-tests"
@@ -3050,10 +2983,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-pkg-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-pkg-unit-tests
     context: pull-knative-pkg-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-pkg-unit-tests"
@@ -3093,10 +3022,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-pkg-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-pkg-unit-tests
     context: pull-knative-pkg-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-pkg-unit-tests"
@@ -3136,10 +3061,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-pkg-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-pkg-integration-tests
     context: pull-knative-pkg-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-pkg-integration-tests"
@@ -3179,10 +3100,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-pkg-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-pkg-integration-tests
     context: pull-knative-pkg-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-pkg-integration-tests"
@@ -3292,7 +3209,7 @@ presubmits:
     decorate: true
     path_alias: knative.dev/test-infra
     branches:
-    - "release-0.10"
+    - "legacy"
     spec:
       containers:
       - image: gcr.io/knative-tests/test-infra/prow-tests-go112:stable
@@ -3330,7 +3247,7 @@ presubmits:
     decorate: true
     path_alias: knative.dev/test-infra
     skip_branches:
-    - "release-0.10"
+    - "legacy"
     spec:
       containers:
       - image: gcr.io/knative-tests/test-infra/prow-tests:stable
@@ -3361,10 +3278,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-test-infra-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-test-infra-unit-tests
     context: pull-knative-test-infra-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-test-infra-unit-tests"
@@ -3372,7 +3285,7 @@ presubmits:
     decorate: true
     path_alias: knative.dev/test-infra
     branches:
-    - "release-0.10"
+    - "legacy"
     spec:
       containers:
       - image: gcr.io/knative-tests/test-infra/prow-tests-go112:stable
@@ -3403,10 +3316,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-test-infra-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-test-infra-unit-tests
     context: pull-knative-test-infra-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-test-infra-unit-tests"
@@ -3414,7 +3323,7 @@ presubmits:
     decorate: true
     path_alias: knative.dev/test-infra
     skip_branches:
-    - "release-0.10"
+    - "legacy"
     spec:
       containers:
       - image: gcr.io/knative-tests/test-infra/prow-tests:stable
@@ -3445,10 +3354,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-test-infra-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-test-infra-integration-tests
     context: pull-knative-test-infra-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-test-infra-integration-tests"
@@ -3456,7 +3361,7 @@ presubmits:
     decorate: true
     path_alias: knative.dev/test-infra
     branches:
-    - "release-0.10"
+    - "legacy"
     spec:
       containers:
       - image: gcr.io/knative-tests/test-infra/prow-tests-go112:stable
@@ -3487,10 +3392,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-test-infra-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-test-infra-integration-tests
     context: pull-knative-test-infra-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-test-infra-integration-tests"
@@ -3498,7 +3399,7 @@ presubmits:
     decorate: true
     path_alias: knative.dev/test-infra
     skip_branches:
-    - "release-0.10"
+    - "legacy"
     spec:
       containers:
       - image: gcr.io/knative-tests/test-infra/prow-tests:stable
@@ -3524,6 +3425,68 @@ presubmits:
       - name: repoview-token
         secret:
           secretName: repoview-token
+      - name: test-account
+        secret:
+          secretName: test-account
+  - name: pull-knative-test-infra-check-config
+    agent: kubernetes
+    context: pull-knative-test-infra-check-config
+    always_run: true
+    rerun_command: "/test pull-knative-test-infra-check-config"
+    trigger: "(?m)^/test (all|pull-knative-test-infra-check-config),?(\\s+|$)"
+    decorate: true
+    path_alias: knative.dev/test-infra
+    branches:
+    - "legacy"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/prow-tests-go112:stable
+        imagePullPolicy: Always
+        command:
+        - runner.sh
+        args:
+        - "./test/presubmit-config-check.sh"
+        volumeMounts:
+        - name: test-account
+          mountPath: /etc/test-account
+          readOnly: true
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/test-account/service-account.json
+        - name: E2E_CLUSTER_REGION
+          value: us-central1
+      volumes:
+      - name: test-account
+        secret:
+          secretName: test-account
+  - name: pull-knative-test-infra-check-config
+    agent: kubernetes
+    context: pull-knative-test-infra-check-config
+    always_run: true
+    rerun_command: "/test pull-knative-test-infra-check-config"
+    trigger: "(?m)^/test (all|pull-knative-test-infra-check-config),?(\\s+|$)"
+    decorate: true
+    path_alias: knative.dev/test-infra
+    skip_branches:
+    - "legacy"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+        imagePullPolicy: Always
+        command:
+        - runner.sh
+        args:
+        - "./test/presubmit-config-check.sh"
+        volumeMounts:
+        - name: test-account
+          mountPath: /etc/test-account
+          readOnly: true
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/test-account/service-account.json
+        - name: E2E_CLUSTER_REGION
+          value: us-central1
+      volumes:
       - name: test-account
         secret:
           secretName: test-account
@@ -3606,10 +3569,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-caching-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-caching-unit-tests
     context: pull-knative-caching-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-caching-unit-tests"
@@ -3648,10 +3607,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-caching-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-caching-unit-tests
     context: pull-knative-caching-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-caching-unit-tests"
@@ -3690,10 +3645,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-caching-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-caching-integration-tests
     context: pull-knative-caching-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-caching-integration-tests"
@@ -3732,10 +3683,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-caching-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-caching-integration-tests
     context: pull-knative-caching-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-caching-integration-tests"
@@ -3909,10 +3856,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-observability-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-observability-unit-tests
     context: pull-knative-observability-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-observability-unit-tests"
@@ -3950,10 +3893,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-observability-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-observability-unit-tests
     context: pull-knative-observability-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-observability-unit-tests"
@@ -3991,10 +3930,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-observability-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-observability-integration-tests
     context: pull-knative-observability-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-observability-integration-tests"
@@ -4032,10 +3967,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-observability-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-observability-integration-tests
     context: pull-knative-observability-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-observability-integration-tests"
@@ -4150,10 +4081,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-sample-controller-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-sample-controller-unit-tests
     context: pull-knative-sample-controller-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-sample-controller-unit-tests"
@@ -4192,10 +4119,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-sample-controller-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-sample-controller-unit-tests
     context: pull-knative-sample-controller-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-sample-controller-unit-tests"
@@ -4311,10 +4234,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-sample-source-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-sample-source-unit-tests
     context: pull-knative-sample-source-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-sample-source-unit-tests"
@@ -4353,10 +4272,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-sample-source-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-sample-source-unit-tests
     context: pull-knative-sample-source-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-sample-source-unit-tests"
@@ -4472,10 +4387,6 @@ presubmits:
           secretName: test-account
   - name: pull-google-knative-gcp-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-google-knative-gcp-unit-tests
     context: pull-google-knative-gcp-unit-tests
     always_run: true
     rerun_command: "/test pull-google-knative-gcp-unit-tests"
@@ -4514,10 +4425,6 @@ presubmits:
           secretName: test-account
   - name: pull-google-knative-gcp-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-google-knative-gcp-unit-tests
     context: pull-google-knative-gcp-unit-tests
     always_run: true
     rerun_command: "/test pull-google-knative-gcp-unit-tests"
@@ -4556,10 +4463,6 @@ presubmits:
           secretName: test-account
   - name: pull-google-knative-gcp-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-google-knative-gcp-integration-tests
     context: pull-google-knative-gcp-integration-tests
     always_run: true
     rerun_command: "/test pull-google-knative-gcp-integration-tests"
@@ -4598,10 +4501,6 @@ presubmits:
           secretName: test-account
   - name: pull-google-knative-gcp-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-google-knative-gcp-integration-tests
     context: pull-google-knative-gcp-integration-tests
     always_run: true
     rerun_command: "/test pull-google-knative-gcp-integration-tests"
@@ -4777,10 +4676,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-net-contour-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-net-contour-unit-tests
     context: pull-knative-net-contour-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-net-contour-unit-tests"
@@ -4819,10 +4714,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-net-contour-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-net-contour-unit-tests
     context: pull-knative-net-contour-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-net-contour-unit-tests"
@@ -4919,6 +4810,295 @@ presubmits:
       - name: covbot-token
         secret:
           secretName: covbot-token
+  knative/net-istio:
+  - name: pull-knative-net-istio-build-tests
+    agent: kubernetes
+    context: pull-knative-net-istio-build-tests
+    always_run: true
+    rerun_command: "/test pull-knative-net-istio-build-tests"
+    trigger: "(?m)^/test (all|pull-knative-net-istio-build-tests),?(\\s+|$)"
+    decorate: true
+    path_alias: knative.dev/net-istio
+    branches:
+    - "release-0.9"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/prow-tests-go112:stable
+        imagePullPolicy: Always
+        command:
+        - runner.sh
+        args:
+        - "./test/presubmit-tests.sh"
+        - "--build-tests"
+        volumeMounts:
+        - name: repoview-token
+          mountPath: /etc/repoview-token
+          readOnly: true
+        - name: test-account
+          mountPath: /etc/test-account
+          readOnly: true
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/test-account/service-account.json
+        - name: E2E_CLUSTER_REGION
+          value: us-central1
+      volumes:
+      - name: repoview-token
+        secret:
+          secretName: repoview-token
+      - name: test-account
+        secret:
+          secretName: test-account
+  - name: pull-knative-net-istio-build-tests
+    agent: kubernetes
+    context: pull-knative-net-istio-build-tests
+    always_run: true
+    rerun_command: "/test pull-knative-net-istio-build-tests"
+    trigger: "(?m)^/test (all|pull-knative-net-istio-build-tests),?(\\s+|$)"
+    decorate: true
+    path_alias: knative.dev/net-istio
+    skip_branches:
+    - "release-0.9"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+        imagePullPolicy: Always
+        command:
+        - runner.sh
+        args:
+        - "./test/presubmit-tests.sh"
+        - "--build-tests"
+        volumeMounts:
+        - name: repoview-token
+          mountPath: /etc/repoview-token
+          readOnly: true
+        - name: test-account
+          mountPath: /etc/test-account
+          readOnly: true
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/test-account/service-account.json
+        - name: E2E_CLUSTER_REGION
+          value: us-central1
+      volumes:
+      - name: repoview-token
+        secret:
+          secretName: repoview-token
+      - name: test-account
+        secret:
+          secretName: test-account
+  - name: pull-knative-net-istio-unit-tests
+    agent: kubernetes
+    context: pull-knative-net-istio-unit-tests
+    always_run: true
+    rerun_command: "/test pull-knative-net-istio-unit-tests"
+    trigger: "(?m)^/test (all|pull-knative-net-istio-unit-tests),?(\\s+|$)"
+    decorate: true
+    path_alias: knative.dev/net-istio
+    branches:
+    - "release-0.9"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/prow-tests-go112:stable
+        imagePullPolicy: Always
+        command:
+        - runner.sh
+        args:
+        - "./test/presubmit-tests.sh"
+        - "--unit-tests"
+        volumeMounts:
+        - name: repoview-token
+          mountPath: /etc/repoview-token
+          readOnly: true
+        - name: test-account
+          mountPath: /etc/test-account
+          readOnly: true
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/test-account/service-account.json
+        - name: E2E_CLUSTER_REGION
+          value: us-central1
+      volumes:
+      - name: repoview-token
+        secret:
+          secretName: repoview-token
+      - name: test-account
+        secret:
+          secretName: test-account
+  - name: pull-knative-net-istio-unit-tests
+    agent: kubernetes
+    context: pull-knative-net-istio-unit-tests
+    always_run: true
+    rerun_command: "/test pull-knative-net-istio-unit-tests"
+    trigger: "(?m)^/test (all|pull-knative-net-istio-unit-tests),?(\\s+|$)"
+    decorate: true
+    path_alias: knative.dev/net-istio
+    skip_branches:
+    - "release-0.9"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+        imagePullPolicy: Always
+        command:
+        - runner.sh
+        args:
+        - "./test/presubmit-tests.sh"
+        - "--unit-tests"
+        volumeMounts:
+        - name: repoview-token
+          mountPath: /etc/repoview-token
+          readOnly: true
+        - name: test-account
+          mountPath: /etc/test-account
+          readOnly: true
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/test-account/service-account.json
+        - name: E2E_CLUSTER_REGION
+          value: us-central1
+      volumes:
+      - name: repoview-token
+        secret:
+          secretName: repoview-token
+      - name: test-account
+        secret:
+          secretName: test-account
+  - name: pull-knative-net-istio-integration-tests
+    agent: kubernetes
+    context: pull-knative-net-istio-integration-tests
+    always_run: true
+    rerun_command: "/test pull-knative-net-istio-integration-tests"
+    trigger: "(?m)^/test (all|pull-knative-net-istio-integration-tests),?(\\s+|$)"
+    decorate: true
+    path_alias: knative.dev/net-istio
+    branches:
+    - "release-0.9"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/prow-tests-go112:stable
+        imagePullPolicy: Always
+        command:
+        - runner.sh
+        args:
+        - "./test/presubmit-tests.sh"
+        - "--integration-tests"
+        volumeMounts:
+        - name: repoview-token
+          mountPath: /etc/repoview-token
+          readOnly: true
+        - name: test-account
+          mountPath: /etc/test-account
+          readOnly: true
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/test-account/service-account.json
+        - name: E2E_CLUSTER_REGION
+          value: us-central1
+      volumes:
+      - name: repoview-token
+        secret:
+          secretName: repoview-token
+      - name: test-account
+        secret:
+          secretName: test-account
+  - name: pull-knative-net-istio-integration-tests
+    agent: kubernetes
+    context: pull-knative-net-istio-integration-tests
+    always_run: true
+    rerun_command: "/test pull-knative-net-istio-integration-tests"
+    trigger: "(?m)^/test (all|pull-knative-net-istio-integration-tests),?(\\s+|$)"
+    decorate: true
+    path_alias: knative.dev/net-istio
+    skip_branches:
+    - "release-0.9"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+        imagePullPolicy: Always
+        command:
+        - runner.sh
+        args:
+        - "./test/presubmit-tests.sh"
+        - "--integration-tests"
+        volumeMounts:
+        - name: repoview-token
+          mountPath: /etc/repoview-token
+          readOnly: true
+        - name: test-account
+          mountPath: /etc/test-account
+          readOnly: true
+        env:
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /etc/test-account/service-account.json
+        - name: E2E_CLUSTER_REGION
+          value: us-central1
+      volumes:
+      - name: repoview-token
+        secret:
+          secretName: repoview-token
+      - name: test-account
+        secret:
+          secretName: test-account
+  - name: pull-knative-net-istio-go-coverage
+    agent: kubernetes
+    context: pull-knative-net-istio-go-coverage
+    always_run: true
+    rerun_command: "/test pull-knative-net-istio-go-coverage"
+    trigger: "(?m)^/test (all|pull-knative-net-istio-go-coverage),?(\\s+|$)"
+    optional: true
+    decorate: true
+    path_alias: knative.dev/net-istio
+    branches:
+    - "release-0.9"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/coverage-go112:latest
+        imagePullPolicy: Always
+        command:
+        - "/coverage"
+        args:
+        - "--postsubmit-job-name=post-knative-net-istio-go-coverage"
+        - "--artifacts=$(ARTIFACTS)"
+        - "--cov-threshold-percentage=50"
+        - "--github-token=/etc/covbot-token/token"
+        volumeMounts:
+        - name: covbot-token
+          mountPath: /etc/covbot-token
+          readOnly: true
+      volumes:
+      - name: covbot-token
+        secret:
+          secretName: covbot-token
+  - name: pull-knative-net-istio-go-coverage
+    agent: kubernetes
+    context: pull-knative-net-istio-go-coverage
+    always_run: true
+    rerun_command: "/test pull-knative-net-istio-go-coverage"
+    trigger: "(?m)^/test (all|pull-knative-net-istio-go-coverage),?(\\s+|$)"
+    optional: true
+    decorate: true
+    path_alias: knative.dev/net-istio
+    skip_branches:
+    - "release-0.9"
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/coverage:latest
+        imagePullPolicy: Always
+        command:
+        - "/coverage"
+        args:
+        - "--postsubmit-job-name=post-knative-net-istio-go-coverage"
+        - "--artifacts=$(ARTIFACTS)"
+        - "--cov-threshold-percentage=50"
+        - "--github-token=/etc/covbot-token/token"
+        volumeMounts:
+        - name: covbot-token
+          mountPath: /etc/covbot-token
+          readOnly: true
+      volumes:
+      - name: covbot-token
+        secret:
+          secretName: covbot-token
   knative/serving-operator:
   - name: pull-knative-serving-operator-build-tests
     agent: kubernetes
@@ -4998,10 +5178,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-serving-operator-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-serving-operator-unit-tests
     context: pull-knative-serving-operator-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-serving-operator-unit-tests"
@@ -5040,10 +5216,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-serving-operator-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-serving-operator-unit-tests
     context: pull-knative-serving-operator-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-serving-operator-unit-tests"
@@ -5082,10 +5254,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-serving-operator-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-serving-operator-integration-tests
     context: pull-knative-serving-operator-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-serving-operator-integration-tests"
@@ -5124,10 +5292,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-serving-operator-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-serving-operator-integration-tests
     context: pull-knative-serving-operator-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-serving-operator-integration-tests"
@@ -5369,10 +5533,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-operator-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-operator-unit-tests
     context: pull-knative-eventing-operator-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-operator-unit-tests"
@@ -5411,10 +5571,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-operator-unit-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-operator-unit-tests
     context: pull-knative-eventing-operator-unit-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-operator-unit-tests"
@@ -5453,10 +5609,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-operator-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-operator-integration-tests
     context: pull-knative-eventing-operator-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-operator-integration-tests"
@@ -5495,10 +5647,6 @@ presubmits:
           secretName: test-account
   - name: pull-knative-eventing-operator-integration-tests
     agent: kubernetes
-    labels:
-      prow.k8s.io/pubsub.project: knative-tests
-      prow.k8s.io/pubsub.topic: knative-monitoring
-      prow.k8s.io/pubsub.runID: pull-knative-eventing-operator-integration-tests
     context: pull-knative-eventing-operator-integration-tests
     always_run: true
     rerun_command: "/test pull-knative-eventing-operator-integration-tests"
@@ -6133,6 +6281,37 @@ periodics:
       - "./test/e2e-tests.sh"
       - "--ambassador-version"
       - "latest"
+      volumeMounts:
+      - name: test-account
+        mountPath: /etc/test-account
+        readOnly: true
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/test-account/service-account.json
+      - name: E2E_CLUSTER_REGION
+        value: us-central1
+    volumes:
+    - name: test-account
+      secret:
+        secretName: test-account
+- cron: "56 */2 * * *"
+  name: ci-knative-serving-https
+  agent: kubernetes
+  decorate: true
+  extra_refs:
+  - org: knative
+    repo: serving
+    base_ref: master
+    path_alias: knative.dev/serving
+  spec:
+    containers:
+    - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+      imagePullPolicy: Always
+      command:
+      - runner.sh
+      args:
+      - "./test/e2e-tests.sh"
+      - "--https"
       volumeMounts:
       - name: test-account
         mountPath: /etc/test-account
@@ -8772,6 +8951,187 @@ periodics:
       args:
       - "--artifacts=$(ARTIFACTS)"
       - "--cov-threshold-percentage=50"
+- cron: "34 * * * *"
+  name: ci-knative-net-istio-continuous
+  agent: kubernetes
+  labels:
+    prow.k8s.io/pubsub.project: knative-tests
+    prow.k8s.io/pubsub.topic: knative-monitoring
+    prow.k8s.io/pubsub.runID: ci-knative-net-istio-continuous
+  decorate: true
+  extra_refs:
+  - org: knative
+    repo: net-istio
+    base_ref: master
+    path_alias: knative.dev/net-istio
+  spec:
+    containers:
+    - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+      imagePullPolicy: Always
+      command:
+      - runner.sh
+      args:
+      - "./test/presubmit-tests.sh"
+      - "--all-tests"
+      volumeMounts:
+      - name: test-account
+        mountPath: /etc/test-account
+        readOnly: true
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/test-account/service-account.json
+      - name: E2E_CLUSTER_REGION
+        value: us-central1
+    volumes:
+    - name: test-account
+      secret:
+        secretName: test-account
+- cron: "10 9 * * *"
+  name: ci-knative-net-istio-nightly-release
+  agent: kubernetes
+  labels:
+    prow.k8s.io/pubsub.project: knative-tests
+    prow.k8s.io/pubsub.topic: knative-monitoring
+    prow.k8s.io/pubsub.runID: ci-knative-net-istio-nightly-release
+  decorate: true
+  extra_refs:
+  - org: knative
+    repo: net-istio
+    base_ref: master
+    path_alias: knative.dev/net-istio
+  spec:
+    containers:
+    - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+      imagePullPolicy: Always
+      command:
+      - runner.sh
+      args:
+      - "./hack/release.sh"
+      - "--publish"
+      - "--tag-release"
+      volumeMounts:
+      - name: nightly-account
+        mountPath: /etc/nightly-account
+        readOnly: true
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/nightly-account/service-account.json
+      - name: E2E_CLUSTER_REGION
+        value: us-central1
+    volumes:
+    - name: nightly-account
+      secret:
+        secretName: nightly-account
+- cron: "50 9 * * 2"
+  name: ci-knative-net-istio-dot-release
+  agent: kubernetes
+  labels:
+    prow.k8s.io/pubsub.project: knative-tests
+    prow.k8s.io/pubsub.topic: knative-monitoring
+    prow.k8s.io/pubsub.runID: ci-knative-net-istio-dot-release
+  decorate: true
+  extra_refs:
+  - org: knative
+    repo: net-istio
+    base_ref: master
+    path_alias: knative.dev/net-istio
+  spec:
+    containers:
+    - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+      imagePullPolicy: Always
+      command:
+      - runner.sh
+      args:
+      - "./hack/release.sh"
+      - "--dot-release"
+      - "--release-gcs knative-releases/net-istio"
+      - "--release-gcr gcr.io/knative-releases"
+      - "--github-token /etc/hub-token/token"
+      volumeMounts:
+      - name: hub-token
+        mountPath: /etc/hub-token
+        readOnly: true
+      - name: release-account
+        mountPath: /etc/release-account
+        readOnly: true
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/release-account/service-account.json
+      - name: E2E_CLUSTER_REGION
+        value: us-central1
+    volumes:
+    - name: hub-token
+      secret:
+        secretName: hub-token
+    - name: release-account
+      secret:
+        secretName: release-account
+- cron: "58 */2 * * *"
+  name: ci-knative-net-istio-auto-release
+  agent: kubernetes
+  labels:
+    prow.k8s.io/pubsub.project: knative-tests
+    prow.k8s.io/pubsub.topic: knative-monitoring
+    prow.k8s.io/pubsub.runID: ci-knative-net-istio-auto-release
+  decorate: true
+  extra_refs:
+  - org: knative
+    repo: net-istio
+    base_ref: master
+    path_alias: knative.dev/net-istio
+  spec:
+    containers:
+    - image: gcr.io/knative-tests/test-infra/prow-tests:stable
+      imagePullPolicy: Always
+      command:
+      - runner.sh
+      args:
+      - "./hack/release.sh"
+      - "--auto-release"
+      - "--release-gcs knative-releases/net-istio"
+      - "--release-gcr gcr.io/knative-releases"
+      - "--github-token /etc/hub-token/token"
+      volumeMounts:
+      - name: hub-token
+        mountPath: /etc/hub-token
+        readOnly: true
+      - name: release-account
+        mountPath: /etc/release-account
+        readOnly: true
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/release-account/service-account.json
+      - name: E2E_CLUSTER_REGION
+        value: us-central1
+    volumes:
+    - name: hub-token
+      secret:
+        secretName: hub-token
+    - name: release-account
+      secret:
+        secretName: release-account
+- cron: "0 1 * * *"
+  name: ci-knative-net-istio-go-coverage
+  labels:
+      prow.k8s.io/pubsub.project: knative-tests
+      prow.k8s.io/pubsub.topic: knative-monitoring
+      prow.k8s.io/pubsub.runID: ci-knative-net-istio-go-coverage
+  agent: kubernetes
+  decorate: true
+  extra_refs:
+  - org: knative
+    repo: net-istio
+    base_ref: master
+    path_alias: knative.dev/net-istio
+  spec:
+    containers:
+    - image: gcr.io/knative-tests/test-infra/coverage:latest
+      imagePullPolicy: Always
+      command:
+      - "/coverage"
+      args:
+      - "--artifacts=$(ARTIFACTS)"
+      - "--cov-threshold-percentage=50"
 - cron: "0 19 * * 1,3,5"
   name: ci-knative-cleanup
   labels:
@@ -9764,6 +10124,22 @@ postsubmits:
     agent: kubernetes
     decorate: true
     path_alias: knative.dev/net-contour
+    spec:
+      containers:
+      - image: gcr.io/knative-tests/test-infra/coverage:latest
+        imagePullPolicy: Always
+        command:
+        - "/coverage"
+        args:
+        - "--artifacts=$(ARTIFACTS)"
+        - "--cov-threshold-percentage=0"
+  knative/net-istio:
+  - name: post-knative-net-istio-go-coverage
+    branches:
+    - master
+    agent: kubernetes
+    decorate: true
+    path_alias: knative.dev/net-istio
     spec:
       containers:
       - image: gcr.io/knative-tests/test-infra/coverage:latest

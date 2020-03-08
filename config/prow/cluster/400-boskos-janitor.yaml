@@ -21,7 +21,7 @@ metadata:
     app: boskos-janitor
   namespace: test-pods
 spec:
-  replicas: 35  # Number of distributed janitor instances
+  replicas: 8  # Number of distributed janitor instances; k8s has ~1/16 as many projects
   template:
     metadata:
       labels:
@@ -31,7 +31,7 @@ spec:
       terminationGracePeriodSeconds: 300
       containers:
       - name: boskos-janitor
-        image: gcr.io/k8s-prow/boskos/janitor:v20200203-a909b961a
+        image: gcr.io/k8s-prow/boskos/janitor:v20200225-e5243e7de
         args:
         - --resource-type=gke-project
         - --

@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This is the meta config file for Prow Jobs in all Knative projects.
+# Run `make config` after making changes to this file, the config-generator
+# will generate Prow jobs for you in jobs/config.yaml.
+
 presubmits:
   knative/serving:
     - repo-settings:
@@ -27,24 +31,25 @@ presubmits:
           memory: 16Gi
     - unit-tests: true
       dot-dev: true
+      needs-monitor: true
     - integration-tests: true
       dot-dev: true
+      needs-monitor: true
       args:
       - "--run-test"
       - "./test/e2e-tests.sh"
     - custom-test: upgrade-tests
       dot-dev: true
+      needs-monitor: true
       args:
       - "--run-test"
       - "./test/e2e-upgrade-tests.sh"
-    - custom-test: smoke-tests
+    - custom-test: autotls-tests
       dot-dev: true
-      #
-      always_run: false
-      optional: true
+      needs-monitor: true
       args:
       - "--run-test"
-      - "./test/e2e-smoke-tests.sh"
+      - "./test/e2e-auto-tls-tests.sh"
     - go-coverage: true
       go-coverage-threshold: 80
       dot-dev: true
@@ -237,13 +242,17 @@ presubmits:
   knative/test-infra:
     - repo-settings:
       go112-branches:
-      - release-0.10
+      - legacy  # Doesn't exist, for compatibility purposes only
     - build-tests: true
       dot-dev: true
     - unit-tests: true
       dot-dev: true
     - integration-tests: true
       dot-dev: true
+    - custom-test: check-config
+      dot-dev: true
+      command:
+        - "./test/presubmit-config-check.sh"
 
   knative/caching:
     - repo-settings:
@@ -305,6 +314,20 @@ presubmits:
     - unit-tests: true
       dot-dev: true
     - integration-tests: false
+      dot-dev: true
+    - go-coverage: true
+      dot-dev: true
+
+  knative/net-istio:
+    - repo-settings:
+      go112-branches:
+      - release-0.9 # This branch doesn't actually exist, create here to make
+      # config generator work
+    - build-tests: true
+      dot-dev: true
+    - unit-tests: true
+      dot-dev: true
+    - integration-tests: true
       dot-dev: true
     - go-coverage: true
       dot-dev: true
@@ -415,6 +438,10 @@ periodics:
       go113: true
     - custom-job: ambassador-latest
       full-command: "./test/e2e-tests.sh --ambassador-version latest"
+      dot-dev: true
+      go113: true
+    - custom-job: https
+      full-command: "./test/e2e-tests.sh --https"
       dot-dev: true
       go113: true
     - nightly: true
@@ -682,6 +709,20 @@ periodics:
       - ORG_NAME=google
 
   knative/net-contour:
+    - continuous: true
+      dot-dev: true
+      go113: true
+    - nightly: true
+      dot-dev: true
+      go113: true
+    - dot-release: true
+      dot-dev: true
+      go113: true
+    - auto-release: true
+      dot-dev: true
+      go113: true
+
+  knative/net-istio:
     - continuous: true
       dot-dev: true
       go113: true

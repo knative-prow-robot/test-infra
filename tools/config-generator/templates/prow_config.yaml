@@ -9,10 +9,10 @@ plank:
     grace_period: 15000000000 # 15s
     utility_images:
       # Update these versions when updating plank version in cluster.yaml
-      clonerefs: "gcr.io/k8s-prow/clonerefs:v20200204-7e8cd997a"
-      initupload: "gcr.io/k8s-prow/initupload:v20200204-7e8cd997a"
-      entrypoint: "gcr.io/k8s-prow/entrypoint:v20200204-7e8cd997a"
-      sidecar: "gcr.io/k8s-prow/sidecar:v20200204-7e8cd997a"
+      clonerefs: "gcr.io/k8s-prow/clonerefs:v20200225-55a0aacbd"
+      initupload: "gcr.io/k8s-prow/initupload:v20200225-55a0aacbd"
+      entrypoint: "gcr.io/k8s-prow/entrypoint:v20200225-55a0aacbd"
+      sidecar: "gcr.io/k8s-prow/sidecar:v20200225-55a0aacbd"
     gcs_configuration:
       bucket: "[[.GcsBucket]]"
       path_strategy: "explicit"
@@ -30,6 +30,8 @@ deck:
         name: metadata
       required_files:
       - started.json|finished.json
+      optional_files:
+      - podinfo.json
     - lens:
         name: buildlog
         config:
@@ -49,12 +51,19 @@ deck:
           - 'timeout waiting for pods to come up'
           # Prow job killed
           - 'Entrypoint received interrupt: terminated'
+          # Code is outdated
+          # TODO(chizhg): this error message should be defined by the common test infrastructure
+          - 'Please run .*hack/update-codegen.sh'
       required_files:
       - build-log.txt
     - lens:
         name: junit
       required_files:
       - artifacts/junit.*\.xml
+    - lens:
+        name: podinfo
+      required_files:
+      - podinfo.json
   tide_update_period: 1s
 
 prowjob_namespace: default
@@ -87,6 +96,7 @@ tide:
     - do-not-merge/hold
     - do-not-merge/work-in-progress
     - do-not-merge/invalid-owners-file
+    - needs-rebase
   merge_method:
     knative: squash
     google/knative-gcp: squash

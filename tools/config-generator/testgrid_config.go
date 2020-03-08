@@ -19,7 +19,7 @@ limitations under the License.
 package main
 
 import (
-    "fmt"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -217,8 +217,6 @@ func getTestGroupName(repoName string, jobName string) string {
 	switch jobName {
 	case "nightly":
 		return strings.ToLower(fmt.Sprintf("ci-%s-%s-release", repoName, jobName))
-	case "test-coverage":
-		return strings.ToLower(fmt.Sprintf("pull-%s-%s", repoName, jobName))
 	default:
 		return strings.ToLower(fmt.Sprintf("ci-%s-%s", repoName, jobName))
 	}

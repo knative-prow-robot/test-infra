@@ -16,7 +16,8 @@
 # do `make push` in `../prow-tests-go112` directory to make sure these 2 images are in
 # sync
 
-FROM gcr.io/k8s-testimages/kubekins-e2e:v20190716-41e2a9e-master
+# TODO(chizhg): probably build the image from scratch?
+FROM gcr.io/k8s-testimages/kubekins-e2e:v20200302-c921a88-master
 LABEL maintainer "Adriano Cunha <adrcunha@google.com>"
 
 # Install extras on top of base image
@@ -42,11 +43,11 @@ RUN rm -rf /usr/local/go && \
     rm "${GO_TARBALL}"
 
 # Extra tools through go get
-RUN GO111MODULE=on go get github.com/google/ko/cmd/ko
+RUN GO111MODULE=on go get github.com/google/ko/cmd/ko@v0.3.0
 RUN GO111MODULE=on go get github.com/boz/kail/cmd/kail
 RUN go get -u github.com/golang/dep/cmd/dep
 RUN go get -u github.com/jstemmer/go-junit-report
-RUN GO111MODULE=on go get -u github.com/raviqqe/liche
+RUN GO111MODULE=on go get -u github.com/raviqqe/liche@v0.0.0-20200229003944-f57a5d1c5be4  # stable liche version for checking md links
 
 # Extract bazel version
 RUN bazel version > /bazel_version
