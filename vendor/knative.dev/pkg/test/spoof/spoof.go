@@ -39,6 +39,9 @@ import (
 )
 
 const (
+	requestInterval = 1 * time.Second
+	// RequestTimeout is the default timeout for the polling requests.
+	RequestTimeout = 5 * time.Minute
 	// Name of the temporary HTTP header that is added to http.Request to indicate that
 	// it is a SpoofClient.Poll request. This header is removed before making call to backend.
 	pollReqHeader = "X-Kn-Poll-Request-Do-Not-Trace"
@@ -104,8 +107,6 @@ func New(
 	domain string,
 	resolvable bool,
 	endpointOverride string,
-	requestInterval time.Duration,
-	requestTimeout time.Duration,
 	opts ...TransportOption) (*SpoofingClient, error) {
 	endpoint, err := ResolveEndpoint(kubeClientset, domain, resolvable, endpointOverride)
 	if err != nil {
@@ -139,7 +140,7 @@ func New(
 	sc := SpoofingClient{
 		Client:          &http.Client{Transport: roundTripper},
 		RequestInterval: requestInterval,
-		RequestTimeout:  requestTimeout,
+		RequestTimeout:  RequestTimeout,
 		Logf:            logf,
 	}
 	return &sc, nil

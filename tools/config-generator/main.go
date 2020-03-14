@@ -82,7 +82,6 @@ type prowConfigTemplateData struct {
 	GubernatorHost    string
 	TestGridGcsBucket string
 	TideRepos         []string
-	TestInfraRepo     string
 }
 
 // baseProwJobTemplateData contains basic data about a Prow job.
@@ -664,11 +663,7 @@ func getProwConfigData(config yaml.MapSlice) prowConfigTemplateData {
 			continue
 		}
 		for _, repo := range getMapSlice(section.Value) {
-			orgRepoName := getString(repo.Key)
-			data.TideRepos = appendIfUnique(data.TideRepos, orgRepoName)
-			if strings.HasSuffix(orgRepoName, "test-infra") {
-				data.TestInfraRepo = orgRepoName
-			}
+			data.TideRepos = appendIfUnique(data.TideRepos, getString(repo.Key))
 		}
 	}
 	// Sort repos to make output stable.
