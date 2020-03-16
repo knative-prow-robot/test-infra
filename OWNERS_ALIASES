@@ -4,7 +4,7 @@ aliases:
   productivity-approvers:
   - chaodaiG
   - chizhg
-  - knative-prow-robot
+  - knative-prow-updater-robot
   productivity-reviewers:
   - chaodaiG
   - coryrc
@@ -14,4 +14,4 @@ aliases:
   - peterfeifanchen
   - efiturri
   - nbarthwal
-  - knative-prow-robot
+  - knative-prow-updater-robot
