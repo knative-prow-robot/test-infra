@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Knative Authors
+Copyright 2020 The Knative Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,19 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// run.go controls how to run functions that needs dryrun support
-
 package main
 
-import (
-	"log"
-)
-
-func run(message string, call func() error, dryrun bool) error {
-	if dryrun {
-		log.Printf("[dry run] %s", message)
-		return nil
-	}
-	log.Printf(message)
-	return call()
-}
+// TODO(chizhg): add slack notification

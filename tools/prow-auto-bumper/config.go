@@ -23,6 +23,8 @@ import (
 
 	"github.com/google/go-github/github"
 	"knative.dev/pkg/test/ghutil"
+
+	"knative.dev/test-infra/tools/prow-config-updater/config"
 )
 
 const (
@@ -63,7 +65,9 @@ const (
 
 var (
 	// configPaths are the list of paths where the configuration files are saved
-	configPaths = []string{"config", "tools/config-generator"}
+	// It only updates staging-prow configs as prow-config-updater tool will roll out the changes
+	// to production after tests for staging-prow pass.
+	configPaths = []string{config.StagingProwConfigRoot, config.StagingProwConfigTemplatesPath}
 	// Whitelist of files to be scanned by this tool
 	fileFilters = []*regexp.Regexp{regexp.MustCompile(`\.yaml$`)}
 	// Matching            gcr.io /k8s-(prow|testimage)/(kubekin-e2e|boskos|.*) (/janitor|/reaper|/.*)?        :vYYYYMMDD-HASH-VARIANT
@@ -81,21 +85,6 @@ var (
 // GHClientWrapper handles methods for github issues
 type GHClientWrapper struct {
 	ghutil.GithubOperations
-}
-
-type gitInfo struct {
-	org      string
-	repo     string
-	head     string // PR head branch
-	base     string // PR base branch
-	userID   string // Github User ID of PR creator
-	userName string // User display name for Git commit
-	email    string // User email address for Git commit
-}
-
-// HeadRef is in the form of "user:head", i.e. "github_user:branch_foo"
-func (gi *gitInfo) getHeadRef() string {
-	return fmt.Sprintf("%s:%s", gi.userID, gi.head)
 }
 
 // Versions holds the version change for an image

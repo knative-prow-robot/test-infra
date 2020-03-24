@@ -207,18 +207,50 @@ This is the preferred method of manually building a new release.
 
 ## Creating a "dot" release on demand
 
+### Option #1: Via Prow UI
+
+**Note:** Has to be a member of
+[Knative Milestone Maintainer](https://github.com/orgs/knative/teams/knative-milestone-maintainers)
+
+1. Open a browser, navigate to
+   `https://prow.knative.dev/?job=ci-knative-MODULE-[OLD_RELEASE_BRANCH-]dot-release`,
+   replace `MODULE` with the right Knative module name (e.g., `serving` or
+   `eventing`), and replace `[OLD_RELEASE_BRANCH-]` with the release branch
+   number if it's old release branch (e.g., `0.11-`)
+
+1. Pick the first line, click on the refresh button, then click `RERUN` button
+
+![Rerun Button](rerun_button.png)
+
+### Option #2: ask one of Prow admin
+
 1. Use the `run_job.sh` script to start the dot release job for the module you
    want, like in the example below. Replace `MODULE` with the right Knative
-   module name (e.g., `serving` or `eventing`).
+   module name (e.g., `serving` or `eventing`), and replace
+   `[OLD_RELEASE_BRANCH-]` with the release branch number if it's old release
+   branch (e.g., `0.11-`)
 
    ```
    cd config/prow
-   ./run_job.sh ci-knative-MODULE-dot-release
+   ./run_job.sh ci-knative-MODULE-[OLD_RELEASE_BRANCH-]dot-release
    ```
 
 1. Monitor the new job through [Prow UI](https://prow.knative.dev).
 
 ## Creating a nightly release on demand
+
+### Option #1: Via Prow UI
+
+**Note:** Has to be a member of
+[Knative Milestone Maintainer](https://github.com/orgs/knative/teams/knative-milestone-maintainers)
+
+1. Open a browser, navigate to
+   `https://prow.knative.dev/?job=ci-knative-MODULE-nightly-release` (Replace
+   `Module` with the name of the repo)
+
+1. Pick the first line, click on the refresh button, then click `RERUN` button
+
+### Option #2: ask one of Prow admin
 
 1. Use the `run_job.sh` script to start the nightly release job for the module
    you want, like in the example below. Replace `MODULE` with the right Knative

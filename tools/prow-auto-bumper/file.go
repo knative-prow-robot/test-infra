@@ -28,7 +28,7 @@ import (
 
 	"knative.dev/pkg/test/helpers"
 
-	"knative.dev/test-infra/shared/common"
+	"knative.dev/test-infra/pkg/common"
 )
 
 // Update all tags in a byte slice
@@ -78,7 +78,7 @@ func (pv *PRVersions) updateFile(filename string, imageFilter *regexp.Regexp, dr
 	}
 
 	newContent, msg, msgs := pv.updateAllTags(content, imageFilter)
-	if err := run(
+	if err := helpers.Run(
 		fmt.Sprintf("Update file '%s':%s", filename, msg),
 		func() error {
 			return ioutil.WriteFile(filename, newContent, 0644)
