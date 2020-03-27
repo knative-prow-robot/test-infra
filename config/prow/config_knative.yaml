@@ -324,7 +324,7 @@ presubmits:
       dot-dev: true
     - unit-tests: true
       dot-dev: true
-    - integration-tests: false
+    - integration-tests: true
       dot-dev: true
     - go-coverage: true
       dot-dev: true
@@ -338,13 +338,19 @@ presubmits:
       dot-dev: true
     - go-coverage: true
       dot-dev: true
+    - custom-test: latest
+      dot-dev: true
+      optional: true
+      args:
+      - "--run-test"
+      - "./test/e2e-tests.sh --istio-version latest"
 
   knative/net-kourier:
     - build-tests: true
       dot-dev: true
     - unit-tests: true
       dot-dev: true
-    - integration-tests: false
+    - integration-tests: true
       dot-dev: true
     - go-coverage: true
       dot-dev: true
@@ -395,6 +401,12 @@ presubmits:
     - unit-tests: false
     - integration-tests: false
     - go-coverage: false
+
+  knative-sandbox/operator:
+    - build-tests: true
+    - unit-tests: true
+    - integration-tests: true
+    - go-coverage: true
 
 periodics:
   knative/serving:
@@ -959,3 +971,17 @@ periodics:
     - auto-release: true
       dot-dev: true
       go113: true
+
+  knative-sandbox/operator:
+    - continuous: true
+      go113: true
+    - nightly: true
+      go113: true
+    - dot-release: true
+      go113: true
+      env-vars:
+      - ORG_NAME=knative-sandbox
+    - auto-release: true
+      go113: true
+      env-vars:
+      - ORG_NAME=knative-sandbox
