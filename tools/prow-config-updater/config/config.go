@@ -32,9 +32,7 @@ type ProwEnv string
 const (
 	ProdProwEnv    ProwEnv = "prow"
 	StagingProwEnv ProwEnv = "prow-staging"
-)
 
-const (
 	OrgName  = "knative"
 	RepoName = "test-infra"
 	PRHead   = "autoupdate"
@@ -48,6 +46,12 @@ const (
 	configPath         = "config"
 	configTemplatePath = "tools/config-generator/templates"
 
+	// Prow config folder names
+	prodConfigDirName             = "prod"
+	stagingConfigDirName          = "staging"
+	prowConfigDirName             = "prow"
+	prowBuildclusterConfigDirName = "build-cluster"
+
 	// Prow config subfolder names
 	core    = "core"
 	jobs    = "jobs"
@@ -56,9 +60,15 @@ const (
 )
 
 var (
+	// Env path
+	ProdConfigRoot    = filepath.Join(configPath, prodConfigDirName)
+	StagingConfigRoot = filepath.Join(configPath, stagingConfigDirName)
 	// Prow config root paths.
-	ProdProwConfigRoot    = filepath.Join(configPath, string(ProdProwEnv))
-	StagingProwConfigRoot = filepath.Join(configPath, string(StagingProwEnv))
+	ProdProwConfigRoot    = filepath.Join(ProdConfigRoot, prowConfigDirName)
+	StagingProwConfigRoot = filepath.Join(StagingConfigRoot, prowConfigDirName)
+	// Prow build cluster config root paths.
+	ProdProwBuildclusterConfigRoot    = filepath.Join(ProdConfigRoot, prowBuildclusterConfigDirName)
+	StagingProwBuildclusterConfigRoot = filepath.Join(StagingConfigRoot, prowBuildclusterConfigDirName)
 	// Prow config templates paths.
 	ProdProwConfigTemplatesPath    = filepath.Join(configTemplatePath, string(ProdProwEnv))
 	StagingProwConfigTemplatesPath = filepath.Join(configTemplatePath, string(StagingProwEnv))
@@ -67,10 +77,10 @@ var (
 	// These are commands for both staging and production Prow.
 	generateConfigFilesCommand = "./hack/generate-configs.sh"
 	updateProwCommandTemplate  = "make -C %s update-prow-cluster"
-	updateProdProwCommand      = fmt.Sprintf(updateProwCommandTemplate, ProdProwConfigRoot)
-	updateStagingProwCommand   = fmt.Sprintf(updateProwCommandTemplate, StagingProwConfigRoot)
+	updateProdProwCommand      = fmt.Sprintf(updateProwCommandTemplate, ProdConfigRoot)
+	updateStagingProwCommand   = fmt.Sprintf(updateProwCommandTemplate, StagingConfigRoot)
 	// This command is only used for production prow in this tool.
-	updateTestgridCommand = fmt.Sprintf("make -C %s update-testgrid-config", ProdProwConfigRoot)
+	updateTestgridCommand = fmt.Sprintf("make -C %s update-testgrid-config", ProdConfigRoot)
 
 	// Config paths that need to be handled by prow-config-updater if files under them are changed.
 	ProdProwConfigPaths = []string{
@@ -78,22 +88,29 @@ var (
 		filepath.Join(ProdProwConfigRoot, jobs),
 		filepath.Join(ProdProwConfigRoot, cluster),
 		filepath.Join(ProdProwConfigRoot, boskos),
+		// Build cluster has only cluster and boskos
+		filepath.Join(ProdProwBuildclusterConfigRoot, cluster),
+		filepath.Join(ProdProwBuildclusterConfigRoot, boskos),
 	}
 	StagingProwConfigPaths = []string{
 		filepath.Join(StagingProwConfigRoot, core),
 		filepath.Join(StagingProwConfigRoot, jobs),
 		filepath.Join(StagingProwConfigRoot, cluster),
 		filepath.Join(StagingProwConfigRoot, boskos),
+		filepath.Join(StagingProwBuildclusterConfigRoot, cluster),
+		filepath.Join(StagingProwBuildclusterConfigRoot, boskos),
 	}
 	ProdTestgridConfigPath = filepath.Join(ProdProwConfigRoot, "testgrid")
 
 	// Config paths that need to be gated and tested by prow-config-updater.
 	ProdProwKeyConfigPaths = []string{
 		filepath.Join(ProdProwConfigRoot, cluster),
+		filepath.Join(ProdProwBuildclusterConfigRoot, cluster),
 		ProdProwConfigTemplatesPath,
 	}
 	StagingProwKeyConfigPaths = []string{
 		filepath.Join(StagingProwConfigRoot, cluster),
+		filepath.Join(StagingProwBuildclusterConfigRoot, cluster),
 		StagingProwConfigTemplatesPath,
 	}
 )

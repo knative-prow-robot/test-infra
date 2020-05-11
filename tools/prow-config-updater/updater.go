@@ -17,10 +17,12 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v27/github"
 	"knative.dev/pkg/test/cmd"
 
 	"knative.dev/test-infra/tools/prow-config-updater/config"
@@ -154,11 +156,13 @@ func (cli *Client) doProwUpdate(env config.ProwEnv) ([]string, error) {
 	}
 
 	// For production Prow, we also need to update Testgrid config if it's changed.
-	tfs := config.CollectRelevantConfigFiles(cli.files, []string{config.ProdTestgridConfigPath})
-	if len(tfs) != 0 {
-		relevantFiles = append(relevantFiles, tfs...)
-		if err := config.UpdateTestgrid(env, cli.dryrun); err != nil {
-			return relevantFiles, fmt.Errorf("error updating Testgrid configs for %q environment: %v", env, err)
+	if env == config.ProdProwEnv {
+		tfs := config.CollectRelevantConfigFiles(cli.files, []string{config.ProdTestgridConfigPath})
+		if len(tfs) != 0 {
+			relevantFiles = append(relevantFiles, tfs...)
+			if err := config.UpdateTestgrid(env, cli.dryrun); err != nil {
+				return relevantFiles, fmt.Errorf("error updating Testgrid configs for %q environment: %v", env, err)
+			}
 		}
 	}
 	return relevantFiles, nil
@@ -172,9 +176,16 @@ func (cli *Client) rollOutToProd() (*github.PullRequest, error) {
 		// We do not need to check the error here as the unit tests can guarantee the paths exist.
 		stagingPath, _ = filepath.Abs(stagingPath)
 		prodPath, _ := filepath.Abs(config.ProdProwKeyConfigPaths[i])
-		// The wildcard '*' needs to be expanded by the shell, so the cp command needs to be run in a shell process.
-		cpCmd := fmt.Sprintf("/bin/bash -c 'cp -r %s/* %s'", stagingPath, prodPath)
-		if _, err := cmd.RunCommand(cpCmd); err != nil {
+		if strings.TrimSpace(prodPath) == "" {
+			return nil, errors.New("prod path can't be empty")
+		}
+		// The wildcard '*' needs to be expanded by the shell, so the cp command
+		// needs to be run in a shell process.
+		syncCmds := []string{
+			fmt.Sprintf("/bin/bash -c 'rm -rf %s/*'", prodPath),
+			fmt.Sprintf("/bin/bash -c 'cp -r %s/* %s'", stagingPath, prodPath),
+		}
+		if _, err := cmd.RunCommands(syncCmds...); err != nil {
 			return nil, fmt.Errorf("error copying staging config files to production: %v", err)
 		}
 	}
