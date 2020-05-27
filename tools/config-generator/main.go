@@ -82,6 +82,8 @@ type prowConfigTemplateData struct {
 	GubernatorHost    string
 	TestGridGcsBucket string
 	TideRepos         []string
+	ManagedRepos      []string
+	ManagedOrgs       []string
 	TestInfraRepo     string
 }
 
@@ -148,7 +150,6 @@ var (
 	nightlyAccount             string
 	releaseAccount             string
 	githubCommenterDockerImage string
-	coverageDockerImage        string
 	prowTestsDockerImage       string
 	presubmitScript            string
 	releaseScript              string
@@ -170,6 +171,7 @@ var (
 	timeoutOverride    int
 
 	// List of Knative repositories.
+	// Not guaranteed unique by any value of the struct
 	repositories []repositoryData
 
 	// Map which sections of the config.yaml were written to stdout.
@@ -445,6 +447,10 @@ func envNameToKey(key string) string {
 	return "- name: " + key
 }
 
+func envValueToValue(value string) string {
+	return "  value: " + value
+}
+
 // addEnvToJob adds the given key/pair environment variable to the job.
 func (data *baseProwJobTemplateData) addEnvToJob(key, value string) {
 	// Value should always be string. Add quotes if we get a number
@@ -452,23 +458,18 @@ func (data *baseProwJobTemplateData) addEnvToJob(key, value string) {
 		value = "\"" + value + "\""
 	}
 
-	data.Env = append(data.Env, envNameToKey(key), "  value: "+value)
+	data.Env = append(data.Env, envNameToKey(key), envValueToValue(value))
 }
 
 func (data *baseProwJobTemplateData) SetGoVersion(version GoVersion) {
 	envKey := envNameToKey("GO_VERSION")
 	for i, key := range data.Env {
 		if key == envKey {
-			data.Env[i+1] = version.String()
+			data.Env[i+1] = envValueToValue(version.String())
 			return
 		}
 	}
 	data.addEnvToJob("GO_VERSION", version.String())
-
-	// TODO: get coverage unified and cleaned up
-	if strings.Contains(data.Image, "coverage:") && version.Equals(GoVersion{1, 14}) {
-		data.Image = strings.ReplaceAll(data.Image, "coverage:", "coverage-go114:")
-	}
 }
 
 // addLabelToJob adds extra labels to a job
@@ -638,7 +639,10 @@ func getProwConfigData(config yaml.MapSlice) prowConfigTemplateData {
 	data.PresubmitLogsDir = presubmitLogsDir
 	data.LogsDir = LogsDir
 	data.TideRepos = make([]string, 0)
+	data.ManagedRepos = make([]string, 0)
+	data.ManagedOrgs = make([]string, 0)
 	// Repos enabled for tide are all those that have presubmit jobs.
+	var isProd bool
 	for _, section := range config {
 		if section.Key != "presubmits" {
 			continue
@@ -649,10 +653,21 @@ func getProwConfigData(config yaml.MapSlice) prowConfigTemplateData {
 			if strings.HasSuffix(orgRepoName, "test-infra") {
 				data.TestInfraRepo = orgRepoName
 			}
+			if strings.HasPrefix(orgRepoName, "knative/") {
+				isProd = true
+			}
 		}
+	}
+	if isProd {
+		data.ManagedOrgs = []string{"knative", "knative-sandbox"}
+		data.ManagedRepos = []string{"google/knative-gcp"}
+	} else {
+		data.ManagedRepos = []string{"knative-prow-robot/serving", "knative-prow-robot/test-infra"}
 	}
 	// Sort repos to make output stable.
 	sort.Strings(data.TideRepos)
+	sort.Strings(data.ManagedOrgs)
+	sort.Strings(data.ManagedRepos)
 	return data
 }
 
@@ -1094,7 +1109,6 @@ func main() {
 	flag.StringVar(&testAccount, "test-account", "/etc/test-account/service-account.json", "Path to the service account JSON for test jobs")
 	flag.StringVar(&nightlyAccount, "nightly-account", "/etc/nightly-account/service-account.json", "Path to the service account JSON for nightly release jobs")
 	flag.StringVar(&releaseAccount, "release-account", "/etc/release-account/service-account.json", "Path to the service account JSON for release jobs")
-	var coverageDockerImageName = flag.String("coverage-docker", "coverage:latest", "Docker image for coverage tool")
 	var prowTestsDockerImageName = flag.String("prow-tests-docker", "prow-tests:stable", "prow-tests docker image")
 	flag.StringVar(&githubCommenterDockerImage, "github-commenter-docker", "gcr.io/k8s-prow/commenter:v20190731-e3f7b9853", "github commenter docker image")
 	flag.StringVar(&presubmitScript, "presubmit-script", "./test/presubmit-tests.sh", "Executable for running presubmit tests")
@@ -1110,7 +1124,6 @@ func main() {
 		log.Fatal("Pass the config file as parameter")
 	}
 
-	coverageDockerImage = path.Join(*dockerImagesBase, *coverageDockerImageName)
 	prowTestsDockerImage = path.Join(*dockerImagesBase, *prowTestsDockerImageName)
 
 	// We use MapSlice instead of maps to keep key order and create predictable output.
