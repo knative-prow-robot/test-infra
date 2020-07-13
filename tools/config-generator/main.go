@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Knative Authors
+Copyright 2020 The Knative Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,24 +21,21 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
 	"gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/util/sets"
+	"knative.dev/test-infra/pkg/ghutil"
 )
 
 const (
@@ -54,9 +51,6 @@ const (
 
 	// generalProwConfig contains config-wide definitions.
 	generalProwConfig = "prow_config.yaml"
-
-	// pluginsConfig is the template for the plugins YAML file.
-	pluginsConfig = "prow_plugins.yaml"
 )
 
 // repositoryData contains basic data about each Knative repository.
@@ -67,8 +61,6 @@ type repositoryData struct {
 	GoCoverageThreshold    int
 	Processed              bool
 	DotDev                 bool
-	Go114                  bool
-	Go113Branches          []string
 }
 
 // prowConfigTemplateData contains basic data about Prow.
@@ -157,6 +149,8 @@ var (
 	presubmitScript            string
 	releaseScript              string
 	webhookAPICoverageScript   string
+	upgradeReleaseBranches     bool
+	githubTokenPath            string
 
 	// #########################################################################
 	// ############## data used for generating prow configuration ##############
@@ -202,204 +196,6 @@ func readTemplate(fp string) string {
 	return templatesCache[fp]
 }
 
-// getString casts the given interface (expected string) as string.
-// An array of length 1 is also considered a single string.
-func getString(s interface{}) string {
-	if _, ok := s.([]interface{}); ok {
-		values := getStringArray(s)
-		if len(values) == 1 {
-			return values[0]
-		}
-		log.Fatalf("Entry %v is not a string or string array of size 1", s)
-	}
-	if str, ok := s.(string); ok {
-		return str
-	}
-	log.Fatalf("Entry %v is not a string", s)
-	return ""
-}
-
-// getInt casts the given interface (expected int) as int.
-func getInt(s interface{}) int {
-	if value, ok := s.(int); ok {
-		return value
-	}
-	log.Fatalf("Entry %v is not an integer", s)
-	return 0
-}
-
-// getBool casts the given interface (expected bool) as bool.
-func getBool(s interface{}) bool {
-	if value, ok := s.(bool); ok {
-		return value
-	}
-	log.Fatalf("Entry %v is not a boolean", s)
-	return false
-}
-
-// getInterfaceArray casts the given interface (expected interface array) as interface array.
-func getInterfaceArray(s interface{}) []interface{} {
-	if interfaceArray, ok := s.([]interface{}); ok {
-		return interfaceArray
-	}
-	log.Fatalf("Entry %v is not an interface array", s)
-	return nil
-}
-
-// getStringArray casts the given interface (expected string array) as string array.
-func getStringArray(s interface{}) []string {
-	interfaceArray := getInterfaceArray(s)
-	strArray := make([]string, len(interfaceArray))
-	for i := range interfaceArray {
-		strArray[i] = getString(interfaceArray[i])
-	}
-	return strArray
-}
-
-// getMapSlice casts the given interface (expected MapSlice) as MapSlice.
-func getMapSlice(m interface{}) yaml.MapSlice {
-	if mm, ok := m.(yaml.MapSlice); ok {
-		return mm
-	}
-	log.Fatalf("Entry %v is not a yaml.MapSlice", m)
-	return nil
-}
-
-// appendIfUnique appends an element to an array of strings, unless it's already present.
-func appendIfUnique(a1 []string, e2 string) []string {
-	var res []string
-	res = append(res, a1...)
-	for _, e1 := range a1 {
-		if e1 == e2 {
-			return res
-		}
-	}
-	return append(res, e2)
-}
-
-func combineSlices(a1 []string, a2 []string) []string {
-	var res []string
-	res = append(res, a1...)
-	for _, e2 := range a2 {
-		res = appendIfUnique(res, e2)
-	}
-	return res
-}
-
-// intersectSlices returns intersect of 2 slices
-func intersectSlices(a1, a2 []string) []string {
-	var res []string
-	s1 := sets.NewString(a1...)
-	for _, e2 := range a2 {
-		if s1.Has(e2) {
-			res = append(res, e2)
-		}
-	}
-	return res
-}
-
-// exclusiveSlices returns elements in a1 but not in a2
-func exclusiveSlices(a1, a2 []string) []string {
-	var res []string
-	s2 := sets.NewString(a2...)
-	for _, e1 := range a1 {
-		if !s2.Has(e1) {
-			res = append(res, e1)
-		}
-	}
-	return res
-}
-
-// strip out all suffixes from the image name
-func stripSuffixFromImageName(name string, suffixes []string) string {
-	parts := strings.SplitN(name, ":", 2)
-	if len(parts) != 2 {
-		log.Fatalf("image name should contain ':': %q", name)
-	}
-	for _, s := range suffixes {
-		if strings.HasSuffix(parts[0], s) {
-			parts[0] = strings.TrimSuffix(parts[0], s)
-		}
-	}
-	return strings.Join(parts, ":")
-}
-
-// add suffix to the image name
-// e.g. if suffix = "-go112", then [IMAGE]:[DIGEST]-> [IMAGE]-go112:[DIGEST]
-func addSuffixToImageName(name string, suffix string) string {
-	parts := strings.SplitN(name, ":", 2)
-	if len(parts) != 2 {
-		log.Fatalf("image name should contain ':': %q", name)
-	}
-	if !strings.HasSuffix(parts[0], suffix) {
-		parts[0] = fmt.Sprintf("%s%s", parts[0], suffix)
-	}
-	return strings.Join(parts, ":")
-}
-
-// Consolidate whitelisted and skipped branches with newly added
-// whitelisted/skipped. To make the logic easier to maintain, this function
-// makes the assumption that the outcome follows these rules:
-//   - Special branch logics always apply on master and future branches
-// Based on the previous rule, if there is a special branch logic, the 2 Prow
-// jobs that serves different branches become:
-//   - Standard job definition:
-//		- whitelisted: [release-0.1]
-//		- skipped: []
-//   - Standard job definition + branch special logic #1:
-//		- whitelisted: []
-//		- skipped: [release-0.1]
-// And when there is a new special logic comes up with different list of release
-// branches to exclude, for example [release-0.1, release-0.2], then the desired
-// outcome becomes:
-//   - Standard job definition:
-//		- whitelisted: [release-0.1]
-//		- skipped: []
-//   - Standard job definition + branch special logic #1: (This will never run)
-//		- whitelisted: []
-//		- skipped: []
-//   - Standard job definition + branch special logic #2:
-//		- whitelisted: [release-0.2]
-//		- skipped: []
-//   - Standard job definition + branch special logic #1 + branch special logic #2:
-//		- whitelisted: []
-//		- skipped: [release-0.1, release-0.2]
-// Noted that only jobs with all special branch logics have something in
-// skipped, while all other jobs only have whitelisted. This rule also applies
-// when there is a third branch specific logic and so on.
-// This function takes the logic above, and determines whether generate
-// whitelisted or skipped as output.
-func consolidateBranches(whitelisted []string, skipped []string, newWhitelisted []string, newSkipped []string) ([]string, []string) {
-	var combinedWhitelisted, combinedSkipped []string
-
-	// Do the legacy part(old branches):
-	if len(newWhitelisted) > 0 {
-		if len(skipped) > 0 {
-			// - if previous is skipped(latest), then minus the skipped from current
-			// branches, as we want to run exclusive on branches supported currently
-			combinedWhitelisted = exclusiveSlices(newWhitelisted, skipped)
-		} else if len(whitelisted) > 0 {
-			// - if previous is include, then find their intersections, as these are the
-			// real supported branches
-			combinedWhitelisted = intersectSlices(newWhitelisted, whitelisted)
-		} else {
-			combinedWhitelisted = newWhitelisted
-		}
-	} else if len(newSkipped) > 0 { // Then do the pos part(latest)
-		if len(skipped) > 0 {
-			// - if previous is skipped(latest), then find the combination, as we want to
-			// skip all non-supported
-			combinedSkipped = combineSlices(newSkipped, skipped)
-		} else if len(whitelisted) > 0 {
-			// - if previous is include, then minus current branches from included
-			combinedWhitelisted = exclusiveSlices(whitelisted, newSkipped)
-		} else {
-			combinedSkipped = newSkipped
-		}
-	}
-	return combinedWhitelisted, combinedSkipped
-}
-
 // Config generation functions.
 
 // newbaseProwJobTemplateData returns a baseProwJobTemplateData type with its initial, default values.
@@ -427,9 +223,6 @@ func newbaseProwJobTemplateData(repo string) baseProwJobTemplateData {
 	data.ExtraRefs = []string{"- org: " + data.OrgName, "  repo: " + data.RepoName}
 	data.Labels = make([]string, 0)
 	data.Optional = ""
-
-	// The build cluster for prod and staging Prow are both named
-	// `build-knative` in kubeconfig in the cluster
 	data.Cluster = "cluster: \"build-knative\""
 	return data
 }
@@ -462,17 +255,6 @@ func (data *baseProwJobTemplateData) addEnvToJob(key, value string) {
 	}
 
 	data.Env = append(data.Env, envNameToKey(key), envValueToValue(value))
-}
-
-func (data *baseProwJobTemplateData) SetGoVersion(version GoVersion) {
-	envKey := envNameToKey("GO_VERSION")
-	for i, key := range data.Env {
-		if key == envKey {
-			data.Env[i+1] = envValueToValue(version.String())
-			return
-		}
-	}
-	data.addEnvToJob("GO_VERSION", version.String())
 }
 
 // addLabelToJob adds extra labels to a job
@@ -553,7 +335,7 @@ func setResourcesReqForJob(res yaml.MapSlice, data *baseProwJobTemplateData) {
 // parseBasicJobConfigOverrides updates the given baseProwJobTemplateData with any base option present in the given config.
 func parseBasicJobConfigOverrides(data *baseProwJobTemplateData, config yaml.MapSlice) {
 	(*data).ExtraRefs = append((*data).ExtraRefs, "  base_ref: "+(*data).RepoBranch)
-	var needDotdev, needGo114 bool
+	var needDotdev bool
 	for i, item := range config {
 		switch item.Key {
 		case "skip_branches":
@@ -581,24 +363,10 @@ func parseBasicJobConfigOverrides(data *baseProwJobTemplateData, config yaml.Map
 					repositories[i].DotDev = true
 				}
 			}
-		case "go114":
-			needGo114 = true
-			for i, repo := range repositories {
-				if path.Base(repo.Name) == (*data).RepoName {
-					repositories[i].Go114 = true
-					data.RepoNameForJob = fmt.Sprintf("%s-%s", (*data).OrgName, (*data).RepoName)
-				}
-			}
 		case "performance":
 			for i, repo := range repositories {
 				if path.Base(repo.Name) == (*data).RepoName {
 					repositories[i].EnablePerformanceTests = true
-				}
-			}
-		case "go113-branches":
-			for i, repo := range repositories {
-				if path.Base(repo.Name) == (*data).RepoName {
-					repositories[i].Go113Branches = getStringArray(item.Value)
 				}
 			}
 		case "env-vars":
@@ -621,9 +389,6 @@ func parseBasicJobConfigOverrides(data *baseProwJobTemplateData, config yaml.Map
 		(*data).PathAlias = "path_alias: knative.dev/" + (*data).RepoName
 		(*data).ExtraRefs = append((*data).ExtraRefs, "  "+(*data).PathAlias)
 	}
-	if needGo114 {
-		data.SetGoVersion(GoVersion{1, 14})
-	}
 	// Override any values if provided by command-line flags.
 	if timeoutOverride > 0 {
 		(*data).Timeout = timeoutOverride
@@ -645,7 +410,6 @@ func getProwConfigData(config yaml.MapSlice) prowConfigTemplateData {
 	data.ManagedRepos = make([]string, 0)
 	data.ManagedOrgs = make([]string, 0)
 	// Repos enabled for tide are all those that have presubmit jobs.
-	var isProd bool
 	for _, section := range config {
 		if section.Key != "presubmits" {
 			continue
@@ -656,25 +420,9 @@ func getProwConfigData(config yaml.MapSlice) prowConfigTemplateData {
 			if strings.HasSuffix(orgRepoName, "test-infra") {
 				data.TestInfraRepo = orgRepoName
 			}
-			if strings.HasPrefix(orgRepoName, "knative/") {
-				isProd = true
-			}
 		}
 	}
-	// TODO: Remove all of these once prow core and plugins configs are not
-	// generated any more
-	if isProd {
-		data.ManagedOrgs = []string{"knative", "knative-sandbox"}
-		data.ManagedRepos = []string{"google/knative-gcp"}
-		data.JobConfigPath = "config/prod/prow/jobs/*.yaml"
-		data.CoreConfigPath = "config/prod/prow/core/config.yaml"
-		data.PluginConfigPath = "config/prod/prow/core/plugins.yaml"
-	} else {
-		data.ManagedOrgs = []string{"knative-prow-robot"}
-		data.JobConfigPath = "config/prod/staging/jobs/*.yaml"
-		data.CoreConfigPath = "config/prod/staging/core/config.yaml"
-		data.PluginConfigPath = "config/prod/staging/core/plugins.yaml"
-	}
+
 	// Sort repos to make output stable.
 	sort.Strings(data.TideRepos)
 	sort.Strings(data.ManagedOrgs)
@@ -714,185 +462,11 @@ func gitHubRepo(data baseProwJobTemplateData) string {
 	return s
 }
 
-// isNum checks if the given string is a valid number
-func isNum(s string) bool {
-	_, err := strconv.ParseFloat(s, 64)
-	return err == nil
-}
-
-// quote returns the given string quoted if it's not a number, or not a key/value pair, or already quoted.
-func quote(s string) string {
-	if isNum(s) {
-		return s
-	}
-	if strings.HasPrefix(s, "'") || strings.HasPrefix(s, "\"") || strings.Contains(s, ": ") || strings.HasSuffix(s, ":") {
-		return s
-	}
-	return "\"" + s + "\""
-}
-
-// indentBase is a helper function which returns the given array indented.
-func indentBase(indentation int, prefix string, indentFirstLine bool, array []string) string {
-	s := ""
-	if len(array) == 0 {
-		return s
-	}
-	indent := strings.Repeat(" ", indentation)
-	for i := 0; i < len(array); i++ {
-		if i > 0 || indentFirstLine {
-			s += indent
-		}
-		s += prefix + quote(array[i]) + "\n"
-	}
-	return s
-}
-
-// indentArray returns the given array indented, prefixed by "-".
-func indentArray(indentation int, array []string) string {
-	return indentBase(indentation, "- ", false, array)
-}
-
-// indentKeys returns the given array of key/value pairs indented.
-func indentKeys(indentation int, array []string) string {
-	return indentBase(indentation, "", false, array)
-}
-
-// indentSectionBase is a helper function which returns the given array of key/value pairs indented inside a section.
-func indentSectionBase(indentation int, title string, prefix string, array []string) string {
-	keys := indentBase(indentation, prefix, true, array)
-	if keys == "" {
-		return keys
-	}
-	return title + ":\n" + keys
-}
-
-// indentArraySection returns the given array indented inside a section.
-func indentArraySection(indentation int, title string, array []string) string {
-	return indentSectionBase(indentation, title, "- ", array)
-}
-
-// indentSection returns the given array of key/value pairs indented inside a section.
-func indentSection(indentation int, title string, array []string) string {
-	return indentSectionBase(indentation, title, "", array)
-}
-
-// indentMap returns the given map indented, with each key/value separated by ": "
-func indentMap(indentation int, mp map[string]string) string {
-	// Extract map keys to keep order consistent.
-	keys := make([]string, 0, len(mp))
-	for key := range mp {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	arr := make([]string, len(mp))
-	for i := 0; i < len(mp); i++ {
-		arr[i] = keys[i] + ": " + quote(mp[keys[i]])
-	}
-	return indentBase(indentation, "", false, arr)
-}
-
 // outputConfig outputs the given line, if not empty, to stdout.
 func outputConfig(line string) {
 	if strings.TrimSpace(line) != "" {
 		fmt.Fprintln(output, strings.TrimRight(line, " "))
 		emittedOutput = true
-	}
-}
-
-// strExists checks if the given string exists in the array
-func strExists(arr []string, str string) bool {
-	for _, s := range arr {
-		if str == s {
-			return true
-		}
-	}
-	return false
-}
-
-type specialBranchLogic struct {
-	branches []string
-	// create new job data based on branches
-	opsNew  func(*baseProwJobTemplateData)
-	restore func(*baseProwJobTemplateData)
-}
-
-// getBase casts data into baseProwJobTemplateData and returns it
-func getBase(data interface{}) *baseProwJobTemplateData {
-	var base *baseProwJobTemplateData
-	switch v := data.(type) {
-	case *presubmitJobTemplateData:
-		base = &data.(*presubmitJobTemplateData).Base
-	case *postsubmitJobTemplateData:
-		base = &data.(*postsubmitJobTemplateData).Base
-	default:
-		log.Fatalf("Unrecognized job template type: '%v'", v)
-	}
-	return base
-}
-
-// recursiveSBL recursively going through specialBranchLogic, and generate job
-// at last. Use `i` to keeps track of current index in sbs to be used
-func recursiveSBL(repoName string, data interface{}, generateOneJob func(data interface{}), sbs []specialBranchLogic, i int) {
-	// Base case, all special branch logics have been applied
-	if i == len(sbs) {
-		// If there is no branch left, this job shouldn't be generated at all
-		if len(getBase(data).Branches) > 0 || len(getBase(data).SkipBranches) > 0 {
-			generateOneJob(data)
-		}
-		return
-	}
-
-	sb := sbs[i]
-	base := getBase(data)
-
-	origBranches, origSkipBranches := base.Branches, base.SkipBranches
-	// Do legacy branches first
-	base.Branches, base.SkipBranches = consolidateBranches(origBranches, origSkipBranches, sb.branches, []string{})
-	recursiveSBL(repoName, data, generateOneJob, sbs, i+1)
-	// Then do latest branches
-	base.Branches, base.SkipBranches = consolidateBranches(origBranches, origSkipBranches, []string{}, sb.branches)
-	sb.opsNew(base)
-	recursiveSBL(repoName, data, generateOneJob, sbs, i+1)
-	sb.restore(base)
-}
-
-// executeJobTemplateWrapper takes in consideration of repo settings, decides how many variants of the
-// same job needs to be generated and generates them.
-func executeJobTemplateWrapper(repoName string, data interface{}, generateOneJob func(data interface{})) {
-	var sbs []specialBranchLogic
-
-	switch data.(type) {
-	case *postsubmitJobTemplateData:
-		if strings.HasSuffix(data.(*postsubmitJobTemplateData).PostsubmitJobName, "go-coverage") {
-			generateOneJob(data)
-			return
-		}
-	}
-
-	var go113Branches []string
-	// Find out if Go113Branches is set in repo settings
-	for _, repo := range repositories {
-		if repo.Name == repoName {
-			if len(repo.Go113Branches) > 0 {
-				go113Branches = repo.Go113Branches
-			}
-		}
-	}
-	if len(go113Branches) > 0 {
-		sbs = append(sbs, specialBranchLogic{
-			branches: go113Branches,
-			opsNew: func(base *baseProwJobTemplateData) {
-				base.SetGoVersion(GoVersion{1, 14})
-			},
-			restore: func(base *baseProwJobTemplateData) {
-			},
-		})
-	}
-
-	if len(sbs) == 0 { // Generate single job if there is no special branch logic
-		generateOneJob(data)
-	} else {
-		recursiveSBL(repoName, data, generateOneJob, sbs, 0)
 	}
 }
 
@@ -1056,14 +630,17 @@ func addRemainingTestCoverageJobs() {
 // buildProjRepoStr builds the projRepoStr used in the config file with projName and repoName
 func buildProjRepoStr(projName string, repoName string) string {
 	projVersion := ""
-	if strings.Contains(projName, "-") {
+	if releaseRegex.MatchString(projName) {
 		projNameAndVersion := strings.Split(projName, "-")
-		projName = projNameAndVersion[0]
-		projVersion = projNameAndVersion[1]
+		// The project name can possibly contain "-" as well, so we need to consider the last part as the version,
+		// and the rest be the project name.
+		// For example, "knative-sandbox-0.15" will be split into "knative-sandbox" and "0.15"
+		projVersion = projNameAndVersion[len(projNameAndVersion)-1]
+		projName = strings.TrimRight(projName, "-"+projVersion)
 	}
 	projRepoStr := repoName
 	if projVersion != "" {
-		projRepoStr += ("-" + projVersion)
+		projRepoStr += "-" + projVersion
 	}
 	projRepoStr = projName + "-" + projRepoStr
 	return strings.ToLower(projRepoStr)
@@ -1092,23 +669,12 @@ func setOutput(fileName string) {
 // main is the script entry point.
 func main() {
 	// Parse flags and sanity check them.
-	prowConfigOutput := ""
 	prowJobsConfigOutput := ""
 	testgridConfigOutput := ""
-	var env = flag.String("env", "prow", "The name of the environment, can be prow or prow-staging")
-	var generateProwConfig = flag.Bool("generate-prow-config", true, "Whether to generate the prow configuration file from the template")
-	var generatePluginsConfig = flag.Bool("generate-plugins-config", true, "Whether to generate the plugins configuration file from the template")
 	var generateTestgridConfig = flag.Bool("generate-testgrid-config", true, "Whether to generate the testgrid config from the template file")
-	var generateMaintenanceJobs = flag.Bool("generate-maintenance-jobs", true, "Whether to generate the maintenance periodic jobs (e.g. backup)")
-	// TODO: remove these options and just generate everything
-	if !(*generateProwConfig && *generatePluginsConfig && *generateTestgridConfig && *generateMaintenanceJobs) {
-		panic(errors.New("Must enable all generators"))
-	}
 	var includeConfig = flag.Bool("include-config", true, "Whether to include general configuration (e.g., plank) in the generated config")
 	var dockerImagesBase = flag.String("image-docker", "gcr.io/knative-tests/test-infra", "Default registry for the docker images used by the jobs")
-	flag.StringVar(&prowConfigOutput, "prow-config-output", "", "The destination for the prow config output, default to be stdout")
 	flag.StringVar(&prowJobsConfigOutput, "prow-jobs-config-output", "", "The destination for the prow jobs config output, default to be stdout")
-	var pluginsConfigOutput = flag.String("plugins-config-output", "", "The destination for the plugins config output, default to be stdout")
 	flag.StringVar(&testgridConfigOutput, "testgrid-config-output", "", "The destination for the testgrid config output, default to be stdout")
 	flag.StringVar(&prowHost, "prow-host", "https://prow.knative.dev", "Prow host, including HTTP protocol")
 	flag.StringVar(&testGridHost, "testgrid-host", "https://testgrid.knative.dev", "TestGrid host, including HTTP protocol")
@@ -1121,7 +687,6 @@ func main() {
 	flag.StringVar(&nightlyAccount, "nightly-account", "/etc/nightly-account/service-account.json", "Path to the service account JSON for nightly release jobs")
 	flag.StringVar(&releaseAccount, "release-account", "/etc/release-account/service-account.json", "Path to the service account JSON for release jobs")
 	var prowTestsDockerImageName = flag.String("prow-tests-docker", "prow-tests:stable", "prow-tests docker image")
-	flag.StringVar(&githubCommenterDockerImage, "github-commenter-docker", "gcr.io/k8s-prow/commenter:v20190731-e3f7b9853", "github commenter docker image")
 	flag.StringVar(&presubmitScript, "presubmit-script", "./test/presubmit-tests.sh", "Executable for running presubmit tests")
 	flag.StringVar(&releaseScript, "release-script", "./hack/release.sh", "Executable for creating releases")
 	flag.StringVar(&webhookAPICoverageScript, "webhook-api-coverage-script", "./test/apicoverage.sh", "Executable for running webhook apicoverage tool")
@@ -1129,6 +694,8 @@ func main() {
 	flag.IntVar(&timeoutOverride, "timeout-override", 0, "Timeout (in minutes) to use instead for a job")
 	flag.StringVar(&jobNameFilter, "job-filter", "", "Generate only this job, instead of all jobs")
 	flag.StringVar(&preCommand, "pre-command", "", "Executable for running instead of the real command of a job")
+	flag.BoolVar(&upgradeReleaseBranches, "upgrade-release-branches", false, "Update release branches jobs based on active branches")
+	flag.StringVar(&githubTokenPath, "github-token-path", "", "Token path for authenticating with github, used only when --upgrade-release-branches is on")
 	flag.Var(&extraEnvVars, "extra-env", "Extra environment variables (key=value) to add to a job")
 	flag.Parse()
 	if len(flag.Args()) != 1 {
@@ -1142,6 +709,16 @@ func main() {
 
 	// Read input config.
 	name := flag.Arg(0)
+	if upgradeReleaseBranches {
+		gc, err := ghutil.NewGithubClient(githubTokenPath)
+		if err != nil {
+			log.Fatalf("Failed creating github client from %q: %v", githubTokenPath, err)
+		}
+		if err := upgradeReleaseBranchesTemplate(name, gc); err != nil {
+			log.Fatalf("Failed upgrade based on release branch: '%v'", err)
+		}
+	}
+
 	content, err := ioutil.ReadFile(name)
 	if err != nil {
 		log.Fatalf("Cannot read file %q: %v", name, err)
@@ -1152,41 +729,26 @@ func main() {
 
 	prowConfigData := getProwConfigData(config)
 
-	if *generatePluginsConfig {
-		setOutput(*pluginsConfigOutput)
-		executeTemplate("plugins config", readTemplate(filepath.Join(*env, pluginsConfig)), prowConfigData)
-	}
-
 	// Generate Prow config.
-	if *generateProwConfig {
-		setOutput(prowConfigOutput)
-		repositories = make([]repositoryData, 0)
-		sectionMap = make(map[string]bool)
-		if *includeConfig {
-			executeTemplate("general header", readTemplate(commonHeaderConfig), prowConfigData)
-			executeTemplate("general config", readTemplate(filepath.Join(*env, generalProwConfig)), prowConfigData)
+	repositories = make([]repositoryData, 0)
+	sectionMap = make(map[string]bool)
+	setOutput(prowJobsConfigOutput)
+	executeTemplate("general header", readTemplate(commonHeaderConfig), prowConfigData)
+	parseSection(config, "presubmits", generatePresubmit, nil)
+	parseSection(config, "periodics", generatePeriodic, generateGoCoveragePeriodic)
+	for _, repo := range repositories { // Keep order for predictable output.
+		if !repo.Processed && repo.EnableGoCoverage {
+			generateGoCoveragePeriodic("periodics", repo.Name, nil)
 		}
+	}
+	generatePerfClusterUpdatePeriodicJobs()
 
-		setOutput(prowJobsConfigOutput)
-		executeTemplate("general header", readTemplate(commonHeaderConfig), prowConfigData)
-		parseSection(config, "presubmits", generatePresubmit, nil)
-		parseSection(config, "periodics", generatePeriodic, generateGoCoveragePeriodic)
-		for _, repo := range repositories { // Keep order for predictable output.
-			if !repo.Processed && repo.EnableGoCoverage {
-				generateGoCoveragePeriodic("periodics", repo.Name, nil)
-			}
+	for _, repo := range repositories {
+		if repo.EnableGoCoverage {
+			generateGoCoveragePostsubmit("postsubmits", repo.Name, nil)
 		}
-		generatePerfClusterUpdatePeriodicJobs()
-		if *generateMaintenanceJobs {
-			generateIssueTrackerPeriodicJobs()
-		}
-		for _, repo := range repositories {
-			if repo.EnableGoCoverage {
-				generateGoCoveragePostsubmit("postsubmits", repo.Name, nil)
-			}
-			if repo.EnablePerformanceTests {
-				generatePerfClusterPostsubmitJob(repo)
-			}
+		if repo.EnablePerformanceTests {
+			generatePerfClusterPostsubmitJob(repo)
 		}
 	}
 
@@ -1208,6 +770,7 @@ func main() {
 
 		periodicJobData := parseJob(config, "periodics")
 		collectMetaData(periodicJobData)
+		addCustomJobsTestgrid()
 
 		// log.Print(spew.Sdump(metaData))
 

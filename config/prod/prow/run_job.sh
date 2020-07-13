@@ -30,8 +30,20 @@ GITHUB_TOKEN_PATH="$2"
 
 set -e
 
+# Download prow core config from prow
+if (( IS_OSX )); then
+  # On OS X, the file has to be under /private other it cannot be mounted by the container.
+  # See https://stackoverflow.com/questions/45122459/docker-mounts-denied-the-paths-are-not-shared-from-os-x-and-are-not-known/45123074
+  CONFIG_YAML="/private$(mktemp)"
+else
+  CONFIG_YAML=$(mktemp)
+fi
+make -C "${REPO_ROOT_DIR}/config/prod" get-cluster-credentials
+trap "make -C '${REPO_ROOT_DIR}/config/prod' unset-cluster-credentials" EXIT
+kubectl get configmaps config -o "jsonpath={.data['config\.yaml']}" >"${CONFIG_YAML}"
+echo "Prow core config downloaded at ${CONFIG_YAML}"
+
 JOB_YAML=$(mktemp)
-CONFIG_YAML=${REPO_ROOT_DIR}/config/prod/prow/core/config.yaml
 JOB_CONFIG_YAML=${REPO_ROOT_DIR}/config/prod/prow/jobs
 
 if [[ -n "${GITHUB_TOKEN_PATH}" ]]; then
@@ -39,7 +51,7 @@ if [[ -n "${GITHUB_TOKEN_PATH}" ]]; then
         -v "${PWD}:${PWD}" -v "${CONFIG_YAML}:${CONFIG_YAML}" -v "${JOB_CONFIG_YAML}:${JOB_CONFIG_YAML}" \
         -v "${GITHUB_TOKEN_PATH}:${GITHUB_TOKEN_PATH}" \
         -w "${PWD}" \
-        gcr.io/k8s-prow/mkpj:v20200427-84e5e2b2c \
+        gcr.io/k8s-prow/mkpj:v20200603-4badfd9f37 \
         "--job=${JOB_NAME}" "--config-path=${CONFIG_YAML}" "--job-config-path=${JOB_CONFIG_YAML}" \
         "--github-token-path=${GITHUB_TOKEN_PATH}" \
         > ${JOB_YAML}
@@ -48,7 +60,7 @@ else
     docker run -i --rm \
         -v "${PWD}:${PWD}" -v "${CONFIG_YAML}:${CONFIG_YAML}" -v "${JOB_CONFIG_YAML}:${JOB_CONFIG_YAML}" \
         -w "${PWD}" \
-        gcr.io/k8s-prow/mkpj:v20200427-84e5e2b2c \
+        gcr.io/k8s-prow/mkpj:v20200603-4badfd9f37 \
         "--job=${JOB_NAME}" "--config-path=${CONFIG_YAML}" "--job-config-path=${JOB_CONFIG_YAML}" \
         > ${JOB_YAML} || failed=1
 

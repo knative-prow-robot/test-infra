@@ -71,6 +71,14 @@ RUN go get -u github.com/jstemmer/go-junit-report
 RUN GO111MODULE=on go get -u github.com/raviqqe/liche@v0.0.0-20200229003944-f57a5d1c5be4  # stable liche version for checking md links
 RUN GO111MODULE=on go get -u github.com/google/go-licenses
 
+# protoc and required golang tooling
+ARG PROTOC_VERSION=3.12.3
+RUN wget "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip" -O protoc.zip \
+    && unzip -p protoc.zip bin/protoc > /usr/local/bin/protoc \
+    && chmod +x /usr/local/bin/protoc \
+    && rm protoc.zip
+RUN GO111MODULE=on go get github.com/gogo/protobuf/protoc-gen-gogofaster@v1.3.1
+
 # Extract versions
 RUN bazel version > /bazel_version
 RUN ko version > /ko_version
@@ -109,7 +117,11 @@ RUN go install knative.dev/test-infra/tools/coverage
 # TODO: Prow jobs run `runner.sh coverage` instead `/coverage`
 COPY images/prow-tests/coverage.sh /coverage
 
-# RUN go install knative.dev/test-infra/kntest/cmd/kntest # Uncomment when you wish to have kntest installed
+# Install kntest
+RUN go install knative.dev/test-infra/kntest/cmd/kntest
+# Install perf-tests tool
+# TODO(chizhg): maybe also move perf-tests tool to be part of kntest?
+RUN go install knative.dev/test-infra/pkg/clustermanager/perf-tests
 
 # reset --hard doesn't care about dirty working copy
 # This must be the last install

@@ -23,27 +23,16 @@
 # Calling this script without arguments will create a new cluster in
 # project $PROJECT_ID, run the tests and delete the cluster.
 
-source $(dirname $0)/../scripts/e2e-tests.sh
+source $(dirname "${BASH_SOURCE[0]}")/../scripts/e2e-tests.sh
 
 # Read metadata.json and get value for key
 # Parameters: $1 - Key for metadata
 function get_meta_value() {
-  go run "${REPO_ROOT_DIR}/vendor/knative.dev/pkg/testutils/metahelper" --get "$1"
+  run_kntest metadata get --key "$1"
 }
 
 function knative_setup() {
   start_latest_knative_serving
-}
-
-# Run "kntest cluster" tool
-# Parameters: $1..$n - parameters passed to the tool
-function run_prow_cluster_tool() {
-  if [[ "${REPO_NAME}" == "test-infra" ]]; then
-    # TODO(chizhg): support parameterizing "gke" so that we can create other types of clusters
-    go run "${REPO_ROOT_DIR}"/kntest/cmd/kntest cluster gke $@
-  else
-    run_go_tool knative.dev/test-infra/kntest/cmd/kntest cluster gke $@
-  fi
 }
 
 # Get test cluster from kubeconfig, fail if it's protected
@@ -62,7 +51,7 @@ function get_e2e_test_cluster() {
 function add_trap {
   local cmd=$1
   shift
-  for trap_signal in $@; do
+  for trap_signal in "$@"; do
     local current_trap="$(trap -p "$trap_signal" | cut -d\' -f2)"
     local new_cmd="($cmd)"
     [[ -n "${current_trap}" ]] && new_cmd="${current_trap};${new_cmd}"
@@ -79,18 +68,19 @@ function create_test_cluster() {
 
   header "Creating test cluster"
 
-  local creation_args=""
+  local creation_args="--save-meta-data"
   (( SKIP_ISTIO_ADDON )) || creation_args+=" --addons istio"
   [[ -n "${GCP_PROJECT}" ]] && creation_args+=" --project ${GCP_PROJECT}"
   echo "Creating cluster with args ${creation_args}"
-  run_prow_cluster_tool create "${creation_args}" || fail_test "failed creating test cluster"
+  # TODO(chizhg): support parameterizing "gke" so that we can create other types of clusters
+  run_kntest cluster gke create "${creation_args}" || fail_test "failed creating test cluster"
   # Should have kubeconfig set already
   local k8s_cluster
   k8s_cluster=$(get_e2e_test_cluster)
 
   # Since calling `create_test_cluster` assumes cluster creation, removing
   # cluster afterwards.
-  add_trap "run_prow_cluster_tool delete > /dev/null &" EXIT SIGINT
+  add_trap "run_kntest cluster gke delete > /dev/null &" EXIT SIGINT
   set +o errexit
   set +o pipefail
 }
@@ -105,14 +95,10 @@ function setup_test_cluster() {
   set -o errexit
   set -o pipefail
 
-  header "Test cluster setup"
-  kubectl get nodes
-
   header "Setting up test cluster"
-
   # Run cluster-creator for acquiring existing test cluster, will fail if
   # kubeconfig isn't set or cluster doesn't exist
-  run_prow_cluster_tool get || fail_test "failed getting test cluster" # NA
+  run_kntest cluster gke get --save-meta-data || fail_test "failed getting test cluster" # NA
   # The step above collects cluster metadata and writes to
   # ${ARTIFACTS}/metadata.json file, use this information
   echo "Cluster used for running tests: $(cat "${ARTIFACTS}"/metadata.json)"
@@ -143,9 +129,6 @@ function setup_test_cluster() {
   is_protected_gcr "${KO_DOCKER_REPO}" && \
     abort "\$KO_DOCKER_REPO set to ${KO_DOCKER_REPO}, which is forbidden"
 
-  # Use default namespace for all subsequent kubectl commands in this context
-  kubectl config set-context "${k8s_cluster}" --namespace=default
-
   echo "- gcloud project is ${E2E_PROJECT_ID}"
   echo "- gcloud user is ${k8s_user}"
   echo "- Cluster is ${k8s_cluster}"
@@ -172,7 +155,7 @@ function setup_test_cluster() {
 # Script entry point.
 
 # Create cluster, this should have kubectl set
-initialize $@
+initialize "$@"
 # Setup cluster
 setup_test_cluster # NA
 
